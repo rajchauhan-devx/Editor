@@ -1,0 +1,63 @@
+{
+  "name": "ai-gaming-editor",
+  "version": "1.0.0",
+  "description": "AI Gaming Editor - Gemini Director & Automated Video Editing Desktop App",
+  "main": "electron/main.cjs",
+  "author": "Raj Chauhan",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "electron:dev": "vite build && electron .",
+    "dist": "npm run build && electron-builder --win portable",
+    "test:worker": "python -m unittest discover -s python-worker -p test_*.py"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.475.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "electron": "^34.2.0",
+    "electron-builder": "^25.1.8",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0"
+  },
+  "build": {
+    "appId": "com.aigamingeditor.app",
+    "productName": "AI Gaming Editor",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable",
+      "artifactName": "AI-Gaming-Editor-v${version}-Windows.${ext}"
+    },
+    "extraResources": [
+      {
+        "from": "python-worker",
+        "to": "python-worker",
+        "filter": [
+          "*.py",
+          "requirements.txt",
+          "!test_*.py"
+        ]
+      }
+    ]
+  }
+}

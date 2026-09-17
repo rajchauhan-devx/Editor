@@ -1,0 +1,23 @@
+# Node dependencies
+node_modules/
+dist/
+dist-staging/
+
+# Build artifacts
+dist-electron/win-unpacked/
+dist-electron/*.zip
+dist-electron/builder-debug.yml
+
+# Python cache & temp
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+python-worker/cache_test/
+python-worker/test_obs_gameplay.mkv
+
+# Environment & OS
+.env
+.env.local
+.DS_Store
+Thumbs.db
