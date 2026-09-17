@@ -46,7 +46,8 @@
     ],
     "win": {
       "target": "portable",
-      "artifactName": "AI-Gaming-Editor-v${version}-Windows.${ext}"
+      "artifactName": "AI-Gaming-Editor-v${version}-Windows.${ext}",
+      "signAndEditExecutable": false
     },
     "extraResources": [
       {

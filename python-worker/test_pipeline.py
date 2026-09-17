@@ -139,6 +139,30 @@ class MediaIntegrationTests(unittest.TestCase):
             media_engine.run_ffmpeg(["-y", "-f", "lavfi", "-i", "color=size=320x180:rate=30:duration=1", "-an", "-c:v", "libx264", source])
             self.assertEqual(media_engine.inspect_media(source)["audio_tracks"], [])
 
+    def test_single_track_audio_extraction(self):
+        with tempfile.TemporaryDirectory(dir=TEST_HOME.name) as directory:
+            source = os.path.join(directory, "single_track.mp4")
+            # Create a 1-second video with exactly 1 stereo audio track
+            media_engine.run_ffmpeg([
+                "-y", "-f", "lavfi", "-i", "color=size=320x180:rate=30:duration=1",
+                "-f", "lavfi", "-i", "sine=frequency=1000:duration=1",
+                "-c:v", "libx264", "-c:a", "aac", source
+            ])
+            inspection = media_engine.inspect_media(source)
+            self.assertEqual(len(inspection["audio_tracks"]), 1)
+            self.assertEqual(inspection["suggested_mapping"]["game_track"], 1)
+            self.assertEqual(inspection["suggested_mapping"]["mic_track"], 1)
+            
+            # Extract streams using single track for both
+            out_dir = os.path.join(directory, "extracted")
+            result = media_engine.extract_audio_streams(source, out_dir, game_track=1, mic_track=1)
+            self.assertTrue(os.path.isfile(result["game_audio_path"]))
+            self.assertTrue(os.path.isfile(result["mic_audio_path"]))
+            
+            # Verify file sizes > 0
+            self.assertGreater(os.path.getsize(result["game_audio_path"]), 0)
+            self.assertGreater(os.path.getsize(result["mic_audio_path"]), 0)
+
     def test_real_cut_compress_export_and_subtitle_timing(self):
         with tempfile.TemporaryDirectory(dir=TEST_HOME.name) as directory:
             source = os.path.join(directory, "original.mp4")

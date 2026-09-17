@@ -133,8 +133,10 @@ def extract_audio_streams(file_path: str, output_dir: str, game_track: int = 2, 
     """Extract game audio and microphone tracks into separate cached WAV files."""
     metadata = inspect_media(file_path)
     tracks = {track["id"] for track in metadata["audio_tracks"]}
-    if game_track == mic_track or game_track not in tracks or mic_track not in tracks:
-        raise ValueError("Confirm two distinct existing tracks for game audio and microphone")
+    if not tracks:
+        raise ValueError("No audio tracks found in the media file")
+    if game_track not in tracks or mic_track not in tracks:
+        raise ValueError(f"Selected audio track(s) not found in file (tracks available: {sorted(list(tracks))})")
     os.makedirs(output_dir, exist_ok=True)
     game_wav = os.path.join(output_dir, "game_audio.wav")
     mic_wav = os.path.join(output_dir, "mic_audio.wav")

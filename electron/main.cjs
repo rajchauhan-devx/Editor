@@ -45,12 +45,46 @@ function createWindow() {
   }
 }
 
+function findPython() {
+  if (process.env.AIGE_PYTHON && fs.existsSync(process.env.AIGE_PYTHON)) {
+    return process.env.AIGE_PYTHON;
+  }
+  const candidates = [
+    'C:\\Python314\\python.exe',
+    'C:\\Python313\\python.exe',
+    'C:\\Python312\\python.exe',
+    'C:\\Python311\\python.exe',
+    'C:\\Python310\\python.exe',
+    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python', 'Python314', 'python.exe'),
+    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python', 'Python313', 'python.exe'),
+    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python', 'Python312', 'python.exe'),
+    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python', 'Python311', 'python.exe'),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return 'python';
+}
+
 app.whenReady().then(() => {
   const workerPath = app.isPackaged
     ? path.join(process.resourcesPath, 'python-worker', 'server.py')
     : path.join(__dirname, '..', 'python-worker', 'server.py');
-  worker = spawn(process.env.AIGE_PYTHON || 'python', [workerPath], { windowsHide: true, stdio: 'ignore' });
-  worker.on('error', () => { worker = null; });
+  const pythonBin = findPython();
+  const logDir = path.join(process.env.LOCALAPPDATA || app.getPath('home'), 'AIGamingEditor');
+  fs.mkdirSync(logDir, { recursive: true });
+  const logPath = path.join(logDir, 'worker.log');
+  const logFd = fs.openSync(logPath, 'a');
+
+  worker = spawn(pythonBin, ['-u', workerPath], {
+    cwd: path.dirname(workerPath),
+    windowsHide: true,
+    stdio: ['ignore', logFd, logFd]
+  });
+  worker.on('error', (err) => {
+    fs.appendFileSync(logPath, `[Worker Launch Error]: ${err.message}\n`);
+    worker = null;
+  });
   createWindow();
 
   app.on('activate', () => {

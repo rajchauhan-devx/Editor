@@ -14,6 +14,38 @@ import { Project } from './types';
 
 import { fetchProjects } from './services/workerApi';
 
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean; error: string}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false, error: '' };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error: error.message || 'An unexpected error occurred' };
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('UI Crash caught by ErrorBoundary:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-950 text-white p-6 space-y-4">
+          <h2 className="text-xl font-bold text-red-400">Application encountered an error</h2>
+          <p className="text-sm text-slate-300 max-w-xl bg-slate-900 border border-slate-700 p-4 rounded-lg font-mono">
+            {this.state.error}
+          </p>
+          <button 
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium"
+            onClick={() => { this.setState({ hasError: false, error: '' }); window.location.reload(); }}
+          >
+            Reload Interface
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export const App: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
@@ -56,82 +88,84 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#080b11] text-slate-100 overflow-hidden select-none font-sans">
-      {/* Frameless Windows Desktop Titlebar */}
-      <Titlebar 
-        projectName={activeProject ? activeProject.name : undefined}
-        projectStatus={activeProject ? activeProject.status : undefined}
-      />
-
-      {/* Main Workspace Layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Compact Sidebar */}
-        <Sidebar
-          activeScreen={activeScreen}
-          onNavigate={(screen) => setActiveScreen(screen)}
-          activeProjectName={activeProject?.name}
-          hasActiveProject={!!activeProject}
+    <ErrorBoundary>
+      <div className="h-screen w-screen flex flex-col bg-[#080b11] text-slate-100 overflow-hidden select-none font-sans">
+        {/* Frameless Windows Desktop Titlebar */}
+        <Titlebar 
+          projectName={activeProject ? activeProject.name : undefined}
+          projectStatus={activeProject ? activeProject.status : undefined}
         />
 
-        {/* Viewport Router */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#0a0e17]">
-          {activeScreen === 'dashboard' && (
-            <DashboardView
-              projects={projects}
-              onOpenImport={() => setIsImportModalOpen(true)}
-              onSelectProject={handleSelectProject}
-            />
-          )}
+        {/* Main Workspace Layout */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Compact Sidebar */}
+          <Sidebar
+            activeScreen={activeScreen}
+            onNavigate={(screen) => setActiveScreen(screen)}
+            activeProjectName={activeProject?.name}
+            hasActiveProject={!!activeProject}
+          />
 
-          {activeScreen === 'projects' && (
-            <DashboardView
-              projects={projects}
-              onOpenImport={() => setIsImportModalOpen(true)}
-              onSelectProject={handleSelectProject}
-            />
-          )}
+          {/* Viewport Router */}
+          <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#0a0e17]">
+            {activeScreen === 'dashboard' && (
+              <DashboardView
+                projects={projects}
+                onOpenImport={() => setIsImportModalOpen(true)}
+                onSelectProject={handleSelectProject}
+              />
+            )}
 
-          {activeScreen === 'editor' && activeProject && (
-            <EditorWorkspace key={activeProject.id + editorSubTab}
-              project={activeProject}
-              initialSubTab={editorSubTab}
-              onBackToDashboard={() => setActiveScreen('dashboard')}
-            />
-          )}
+            {activeScreen === 'projects' && (
+              <DashboardView
+                projects={projects}
+                onOpenImport={() => setIsImportModalOpen(true)}
+                onSelectProject={handleSelectProject}
+              />
+            )}
 
-          {activeScreen === 'analysis' && activeProject && (
-            <AnalysisView
-              project={activeProject}
-              onOpenEditor={() => {
-                setActiveScreen('editor');
-                setEditorSubTab('timeline');
-              }}
-            />
-          )}
+            {activeScreen === 'editor' && activeProject && (
+              <EditorWorkspace key={activeProject.id + editorSubTab}
+                project={activeProject}
+                initialSubTab={editorSubTab}
+                onBackToDashboard={() => setActiveScreen('dashboard')}
+              />
+            )}
 
-          {activeScreen === 'assets' && <AssetsView />}
+            {activeScreen === 'analysis' && activeProject && (
+              <AnalysisView
+                project={activeProject}
+                onOpenEditor={() => {
+                  setActiveScreen('editor');
+                  setEditorSubTab('timeline');
+                }}
+              />
+            )}
 
-          {activeScreen === 'prerequisites' && <PrerequisitesView />}
+            {activeScreen === 'assets' && <AssetsView />}
 
-          {activeScreen === 'models' && <ModelsView />}
+            {activeScreen === 'prerequisites' && <PrerequisitesView />}
 
-          {activeScreen === 'settings' && <SettingsView />}
-        </main>
+            {activeScreen === 'models' && <ModelsView />}
+
+            {activeScreen === 'settings' && <SettingsView />}
+          </main>
+        </div>
+
+        {/* Persistent System Resource Bar */}
+        <SystemBar 
+          apiCost={activeProject ? activeProject.costEstimate : 0}
+          budgetCap={activeProject ? activeProject.costBudget : 2.00}
+        />
+
+        {/* New Project / OBS Recording Setup Modal */}
+        {isImportModalOpen && <ImportModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onStartAnalysis={handleStartNewAnalysis}
+        />}
       </div>
-
-      {/* Persistent System Resource Bar */}
-      <SystemBar 
-        apiCost={activeProject ? activeProject.costEstimate : 0}
-        budgetCap={activeProject ? activeProject.costBudget : 2.00}
-      />
-
-      {/* New Project / OBS Recording Setup Modal */}
-      {isImportModalOpen && <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onStartAnalysis={handleStartNewAnalysis}
-      />}
-    </div>
+    </ErrorBoundary>
   );
 };
 export default App;
